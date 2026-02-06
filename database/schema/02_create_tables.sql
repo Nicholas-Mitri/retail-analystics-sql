@@ -1,15 +1,23 @@
 /*
-Tables to implement:
-- users (customers, vendors, admins)
-- vendors
-- categories
-- products
-- product_variants
-- orders
-- order_items
-- payments
-- addresses
+-- =====================================================
+-- Drop existing tables (in reverse dependency order)
+-- =====================================================
+
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS addresses;
+DROP TABLE IF EXISTS product_variants;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS vendors;
+DROP TABLE IF EXISTS users;
 */
+
+
+-- =====================================================
+-- Create tables
+-- =====================================================
 
 CREATE TABLE IF NOT EXISTS users (
 	user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -39,7 +47,7 @@ CREATE TABLE IF NOT EXISTS categories (
     parent_category_id INT,
     category_name VARCHAR(100) NOT NULL,
     slug VARCHAR(100) UNIQUE NOT NULL,
-    description TEXT DEFAULT 'No description available.',
+    description VARCHAR(1000) DEFAULT 'No description available.',
     is_active BOOLEAN DEFAULT TRUE,
     display_order INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -54,7 +62,7 @@ CREATE TABLE IF NOT EXISTS products (
     vendor_id INT NOT NULL,
 	category_id INT NOT NULL,  
     p_name VARCHAR(255) NOT NULL,
-    description TEXT,
+    description VARCHAR(1000) DEFAULT 'No description available.',
     p_status ENUM('active', 'inactive', 'discontinued') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
