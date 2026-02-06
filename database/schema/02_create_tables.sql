@@ -8,9 +8,7 @@ Tables to implement:
 - orders
 - order_items
 - payments
-- reviews
 - addresses
-
 */
 
 CREATE TABLE IF NOT EXISTS users (
@@ -33,7 +31,7 @@ CREATE TABLE IF NOT EXISTS vendors (
     approved_at TIMESTAMP,
     v_status ENUM('active', 'deactivated', 'pending', 'suspended'),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
  );
  
 CREATE TABLE IF NOT EXISTS categories (
@@ -47,7 +45,7 @@ CREATE TABLE IF NOT EXISTS categories (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (parent_category_id)
-        REFERENCES categories (category_id),
+        REFERENCES categories (category_id) ON DELETE RESTRICT,
     UNIQUE KEY unique_category_per_parent (category_name , parent_category_id)
 );
 
@@ -69,9 +67,9 @@ CREATE TABLE IF NOT EXISTS product_variants (
     product_id INT NOT NULL,
     sku VARCHAR(100) UNIQUE NOT NULL,
     attributes JSON,
-    price DECIMAL(10 , 2 ) NOT NULL,
-    stock_quantity INT DEFAULT 0,
-    v_status ENUM('active', 'inactive', 'discontinued') DEFAULT 'active',  
+    price DECIMAL(10 , 2 ) NOT NULL CHECK (price >= 0),
+    stock_quantity INT DEFAULT 0 CHECK (stock_quantity >= 0),
+    pv_status ENUM('active', 'inactive', 'discontinued') DEFAULT 'active',  
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(product_id)
@@ -91,24 +89,45 @@ CREATE TABLE IF NOT EXISTS addresses (
 	FOREIGN KEY (user_id) REFERENCES users(user_id)
  );
  
- /*
+
 CREATE TABLE IF NOT EXISTS orders (
-	user_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+	address_id INT,
+	o_status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
+    subtotal DECIMAL(12,2) NOT NULL,
+    tax_amount DECIMAL(10,2) DEFAULT 0.00,
+    shipping_cost DECIMAL(8,2) DEFAULT 0.00,
+    total_amount DECIMAL(12,2) AS (subtotal + tax_amount + shipping_cost) STORED,
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    shipped_date TIMESTAMP NULL,
+    delivered_date TIMESTAMP NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (address_id) REFERENCES addresses(address_id)
+);
 
- );
- 
+
 CREATE TABLE IF NOT EXISTS order_items (
-	user_id INT AUTO_INCREMENT PRIMARY KEY,
-
- );
+    order_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    variant_id INT NOT NULL,
+    quantity INT NOT NULL CHECK (quantity > 0),
+    unit_price DECIMAL(10,2) NOT NULL,  
+    total_price DECIMAL(12,2) AS (unit_price * quantity) STORED, 
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id)
+);
  
 CREATE TABLE IF NOT EXISTS payments (
-	user_id INT AUTO_INCREMENT PRIMARY KEY,
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL UNIQUE,  
+    amount DECIMAL(12,2) NOT NULL,
+    payment_method ENUM('credit_card', 'debit_card', 'paypal', 'bank_transfer') NOT NULL,
+    pay_status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
+    transaction_id VARCHAR(36) UNIQUE DEFAULT (UUID()),  
+    failure_reason VARCHAR(255),
+    processed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id)
+);
 
- );
- 
-CREATE TABLE IF NOT EXISTS reviews (
-	user_id INT AUTO_INCREMENT PRIMARY KEY,
-
- );
- */
