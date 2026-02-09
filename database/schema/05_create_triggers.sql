@@ -7,8 +7,8 @@ DROP TRIGGER IF EXISTS prevent_category_delete;
 
 -- Drop triggers for addresses table
 DROP TRIGGER IF EXISTS prevent_address_delete;
-DROP TRIGGER IF EXISTS before_address_update;
-DROP TRIGGER IF EXISTS before_address_insert;
+DROP TRIGGER IF EXISTS after_address_update;
+DROP TRIGGER IF EXISTS after_address_insert;
 
 -- Drop triggers for order_items table
 DROP TRIGGER IF EXISTS before_order_item_insert;
@@ -75,33 +75,37 @@ BEGIN
     SIGNAL SQLSTATE '45000'
     SET MESSAGE_TEXT = 'Addresses cannot be deleted.';
 END//
-
+/*
 -- Ensure only one default address per user by unsetting other defaults
-CREATE TRIGGER before_address_update
-BEFORE UPDATE ON addresses
+CREATE TRIGGER after_address_update
+AFTER UPDATE ON addresses
 FOR EACH ROW
 BEGIN
     -- If this address is being set as default, unset all other defaults for this user
     IF NEW.is_default = TRUE AND OLD.is_default = FALSE THEN
         UPDATE addresses
         SET is_default = FALSE
-        WHERE user_id = NEW.user_id AND is_default = TRUE;
+        WHERE user_id = NEW.user_id 
+        AND address_id != NEW.address_id 
+        AND is_default = TRUE;
     END IF;
 END//
 
 -- Ensure only one default address per user on insert
-CREATE TRIGGER before_address_insert
-BEFORE INSERT ON addresses
+CREATE TRIGGER after_address_insert
+AFTER INSERT ON addresses
 FOR EACH ROW
 BEGIN
     -- If this new address is default, unset all other defaults for this user
     IF NEW.is_default = TRUE THEN
         UPDATE addresses
         SET is_default = FALSE
-        WHERE user_id = NEW.user_id AND is_default = TRUE;
+        WHERE user_id = NEW.user_id 
+        AND address_id != NEW.address_id 
+        AND is_default = TRUE;
     END IF;
 END//
-
+*/
 DELIMITER ;
 
 -- =====================================================
@@ -110,7 +114,7 @@ DELIMITER ;
 
 DELIMITER //
 
--- /* ACTIVATE AFTER INSERT
+/* ACTIVATE AFTER INSERT
 -- Validate order item before insertion
 CREATE TRIGGER before_order_item_insert
 BEFORE INSERT ON order_items
@@ -151,7 +155,7 @@ BEGIN
         SET MESSAGE_TEXT = 'Cannot add items to orders that are not pending';
     END IF;
 END//
--- */
+*/
 
 -- Update order totals and inventory after item insertion
 CREATE TRIGGER after_order_item_insert
@@ -313,7 +317,7 @@ DELIMITER ;
 -- Triggers for orders table
 -- =====================================================
 
--- /* ACTIVATE AFTER DATA INSERTED
+/* ACTIVATE AFTER DATA INSERTED
 DELIMITER //
 
 -- Validate and manage order updates
@@ -410,7 +414,7 @@ BEGIN
 END //
 
 DELIMITER ;
--- */
+*/
 
 DELIMITER //
 
