@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS vendors (
     company_name VARCHAR(50) NOT NULL,
     commission_rate DECIMAL(5,2) NOT NULL DEFAULT 10.00,
     approved_at TIMESTAMP,
-    v_status ENUM('active', 'deactivated', 'pending', 'suspended'),
+    v_status ENUM('active', 'inactive', 'pending', 'suspended'),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
  );
 
