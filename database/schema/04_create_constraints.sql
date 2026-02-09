@@ -23,11 +23,11 @@
 -- -----------------------
 -- Add email format validation
 ALTER TABLE users ADD CONSTRAINT chk_email_format
-    CHECK (email REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+    CHECK (email REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{3,}$');
 
 -- Add phone format validation (if standardized format required)
 ALTER TABLE users ADD CONSTRAINT chk_phone_format
-    CHECK (phone REGEXP '^[0-9]{10}$' OR phone IS NULL);
+    CHECK (phone REGEXP '^[0-9]{3}-[0-9]{4}$' OR phone IS NULL);
 
 -- Add password length validation (minimum 8 characters)
 ALTER TABLE users ADD CONSTRAINT chk_password_length
@@ -50,9 +50,6 @@ ALTER TABLE vendors ADD CONSTRAINT chk_approved_vendor_timestamp
 
 -- Categories Table Constraints
 -- -----------------------------
--- Prevent self-referencing categories
-ALTER TABLE categories ADD CONSTRAINT chk_no_self_reference
-    CHECK (category_id != parent_category_id);
 
 -- Add slug format validation (lowercase, hyphens only)
 ALTER TABLE categories ADD CONSTRAINT chk_slug_format
