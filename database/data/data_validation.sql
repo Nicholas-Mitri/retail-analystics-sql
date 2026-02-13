@@ -1,259 +1,490 @@
 -- =====================================================
 -- DATA VALIDATION GUIDE
 -- =====================================================
--- This file contains queries to validate data integrity, constraint
--- compliance, and business rule adherence in the retail_analytics database.
---
--- Portfolio Project Note: These validation queries demonstrate understanding
--- of data quality principles suitable for a production-ready system without
--- being overly complex. In a real production environment, these would be
--- automated as part of a data quality monitoring pipeline.
+-- This file contains queries to validate data integrity, constraint compliance, and business rule adherence in the retail_analytics database.
 -- =====================================================
-
 
 -- =====================================================
 -- 1. CONSTRAINT INTEGRITY CHECKS
 -- =====================================================
 -- Validate that data adheres to defined constraints
 
--- 1.1 Check for negative prices (should be prevented by CHECK constraint)
--- Expected result: 0 rows
--- TODO: Query product_variants joined with products to find any prices < 0
+CREATE OR REPLACE VIEW integrity_checks AS
 
+-- Check 1: No negative prices in product_variants
+SELECT
+    'NO NEGATIVE PRICE' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM product_variants
+WHERE price < 0
 
--- 1.2 Check for negative stock quantities (should be prevented by CHECK constraint)
--- Expected result: 0 rows
--- TODO: Query product_variants joined with products to find stock_quantity < 0
+UNION ALL
 
+-- Check 2: No negative stock in product_variants
+SELECT
+    'NO NEGATIVE STOCK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END
+FROM product_variants
+WHERE stock_quantity < 0
 
--- 1.3 Check for invalid email formats (should be prevented by CHECK constraint)
--- Expected result: 0 rows
--- TODO: Query users table to find emails that don't match the regex pattern
+UNION ALL
 
+-- Check 3: No invalid emails in users
+SELECT
+    'NO INVALID EMAIL',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END
+FROM users
+WHERE email NOT REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{3,}$'
 
--- 1.4 Check for invalid phone formats (should be prevented by CHECK constraint)
--- Expected result: 0 rows
--- TODO: Query users table to find phones that don't match the expected format
+UNION ALL
 
+-- Check 4: No invalid phone numbers in users
+SELECT
+    'NO INVALID PHONE',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END
+FROM users
+WHERE phone NOT REGEXP '^[0-9]{3}-[0-9]{4}$'
+    AND phone IS NOT NULL
 
--- 1.5 Check for short passwords (should be prevented by CHECK constraint)
--- Expected result: 0 rows
--- TODO: Query users table to find passwords with CHAR_LENGTH < 8
+UNION ALL
 
+-- Check 5: No short passwords in users
+SELECT
+    'NO SHORT PASSWORD',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END
+FROM users
+WHERE CHAR_LENGTH(user_password) < 8
 
--- 1.6 Check commission rates are within valid range (0-100%)
--- Expected result: 0 rows
--- TODO: Query vendors table to find commission_rate outside 0-100 range
+UNION ALL
+
+-- Check 6: No invalid commission rate values for vendors
+SELECT
+    'NO INVALID COMMISION',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END
+FROM vendors
+WHERE commission_rate NOT BETWEEN 0 AND 100;
 
 
 -- =====================================================
--- 2. FOREIGN KEY RELATIONSHIP VALIDATION
--- =====================================================
--- Verify referential integrity across related tables
-
--- 2.1 Check for orphaned products (products without valid vendor)
--- Expected result: 0 rows
--- TODO: LEFT JOIN products with vendors to find products with NULL vendor
-
-
--- 2.2 Check for orphaned product variants (variants without valid product)
--- Expected result: 0 rows
--- TODO: LEFT JOIN product_variants with products to find variants with NULL product
-
-
--- 2.3 Check for orphaned order items (items without valid order)
--- Expected result: 0 rows
--- TODO: LEFT JOIN order_items with orders to find items with NULL order
-
-
--- 2.4 Check for vendors without corresponding user accounts
--- Expected result: 0 rows
--- TODO: LEFT JOIN vendors with users to find vendors with NULL user
-
-
--- =====================================================
--- 3. BUSINESS RULE VALIDATIONS
+-- 2. BUSINESS RULE VALIDATIONS
 -- =====================================================
 -- Validate data adheres to business logic
+CREATE OR REPLACE VIEW business_rule_checks AS
 
--- 3.1 Check order date sequence: shipped_date >= order_date
+-- 2.1 Check order date sequence: shipped_date >= order_date
 -- Expected result: 0 rows (constraint should prevent this)
--- TODO: Query orders where shipped_date is NOT NULL but shipped_date < order_date
+SELECT
+    'SHIPPED AFTER ORDER DATE' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM orders
+WHERE shipped_date IS NOT NULL AND order_date IS NOT NULL AND shipped_date < order_date
 
+UNION ALL
 
--- 3.2 Check order date sequence: delivered_date >= shipped_date
+-- 2.2 Check order date sequence: delivered_date >= shipped_date
 -- Expected result: 0 rows (constraint should prevent this)
--- TODO: Query orders where delivered_date is NOT NULL but shipped_date is NULL or delivered_date < shipped_date
+SELECT
+    'DELIVERED AFTER SHIPPING DATE' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM orders
+WHERE shipped_date IS NOT NULL AND delivered_date IS NOT NULL AND delivered_date < shipped_date
 
+UNION ALL
 
--- 3.3 Check cancelled orders have no ship/delivery dates
+-- 2.3 Check cancelled orders have no ship/delivery dates
 -- Expected result: 0 rows (constraint should prevent this)
--- TODO: Query orders with status 'cancelled' but shipped_date or delivered_date is NOT NULL
+SELECT
+    'NO SHIP/DELIVERY DATES ON CANCELLED ORDERS' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM orders
+WHERE o_status = 'cancelled' AND shipped_date IS NOT NULL AND delivered_date IS NOT NULL
 
+UNION ALL
 
--- 3.4 Check delivered orders have both shipped and delivered dates
+-- 2.4 Check delivered orders have both shipped and delivered dates
 -- Expected result: 0 rows (constraint should prevent this)
--- TODO: Query orders with status 'delivered' but missing shipped_date or delivered_date
+SELECT
+    'DELIVERED ORDERS FULLY DATED' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM orders
+WHERE o_status = 'delivered' AND (shipped_date IS NULL AND delivered_date IS NULL);
 
-
--- 3.5 Check active vendors have approval timestamps
+-- 2.5 Check active vendors have approval timestamps
 -- Expected result: 0 rows (constraint should prevent this)
--- TODO: Query vendors with status 'active' but approved_at IS NULL
+SELECT
+    'APPROVAL TIMESTAMPS ON ACTIVE VENDORS' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM vendors
+WHERE v_status='active' AND approved_at IS NULL
 
+UNION ALL
 
--- 3.6 Validate all vendor users have 'vendor' customer_type
+-- 2.6 Validate all vendor users have 'vendor' customer_type
 -- Expected result: 0 rows
--- TODO: JOIN vendors with users to find vendors where customer_type != 'vendor'
-
+SELECT
+    'VENDORS APPROPRIATELY ASSIGNED' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM vendors
+JOIN users ON users.user_id = vendors.user_id
+WHERE users.customer_type != 'vendor';
 
 -- =====================================================
 -- 4. DATA QUALITY CHECKS
 -- =====================================================
 -- Identify potential data quality issues
+CREATE OR REPLACE VIEW data_quality_checks AS
 
--- 4.1 Check for duplicate email addresses (should be prevented by UNIQUE constraint)
+-- 4.1 Check for duplicate SKUs (should be prevented by UNIQUE constraint)
 -- Expected result: 0 rows
--- TODO: Use GROUP BY email with HAVING COUNT(*) > 1 to find duplicates
+SELECT
+    'NO DUPLICATE SKUS' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM (
+    SELECT sku
+    FROM product_variants
+    GROUP BY sku
+    HAVING COUNT(*) > 1
+) AS duplicates
 
+UNION ALL
 
--- 4.2 Check for duplicate SKUs (should be prevented by UNIQUE constraint)
--- Expected result: 0 rows
--- TODO: Use GROUP BY sku with HAVING COUNT(*) > 1 to find duplicates
-
-
--- 4.3 Check for duplicate product names per vendor (should be prevented by UNIQUE constraint)
--- Expected result: 0 rows
--- TODO: Use GROUP BY vendor_id, p_name with HAVING COUNT(*) > 1
-
-
--- 4.4 Check for products with very short names (less than 3 characters)
+-- 4.2 Check for products with very short names (less than 3 characters)
 -- Expected result: 0 rows (constraint should prevent this)
--- TODO: Query products where CHAR_LENGTH(p_name) < 3
+SELECT
+    'NO SHORT PRODUCT NAMES' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM products
+WHERE CHAR_LENGTH(p_name) < 3
 
+UNION ALL
 
--- 4.5 Check for invalid slug formats (lowercase and hyphens only)
+-- 4.3 Check for invalid slug formats (lowercase and hyphens only)
 -- Expected result: 0 rows (constraint should prevent this)
--- TODO: Query categories where slug doesn't match regex pattern '^[a-z0-9-]+$'
-
+SELECT
+    'VALID SLUG FORMATS' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM categories
+WHERE slug NOT REGEXP '^[a-z0-9-]+$';
 
 -- 4.6 Check for products with no available variants
--- Portfolio note: This is a data quality check, not a constraint violation
+-- This is a data quality check, not a constraint violation
 -- Some products may legitimately have no variants yet
--- TODO: LEFT JOIN products with product_variants, GROUP BY product, HAVING COUNT(variants) = 0
+-- SET @num_of_variants = 0;
 
+-- SELECT p.product_id, p_name, COUNT(sku)
+-- FROM products p
+-- LEFT JOIN product_variants pv ON p.product_id = pv.product_id
+-- GROUP BY p.product_id, p_name
+-- HAVING COUNT(sku) = @num_of_variants;
 
 -- =====================================================
 -- 5. PAYMENT AND ORDER VALIDATION
 -- =====================================================
 -- Validate payment amounts and order consistency
+CREATE OR REPLACE VIEW payment_checks AS
 
 -- 5.1 Check for payments with zero or negative amounts
 -- Expected result: 0 rows (constraint should prevent this)
--- TODO: Query payments where amount <= 0
+SELECT
+    'NO NEGATIVE PRICE' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM payments
+WHERE amount <= 0
 
+UNION ALL
 
 -- 5.2 Verify payment amounts match calculated order totals
--- Expected result: 0 rows (or small rounding differences < 0.01)
--- Note: This checks if the payment amount equals (subtotal + shipping) * (1 + tax/100)
--- TODO: JOIN payments with orders, compare amount with total_amount using ABS(difference)
+SELECT
+    'NO NEGATIVE PRICE' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN SUM(p_join_o.payment_order_match) THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM (
+    SELECT ABS(p.amount - o.total_amount) < 0.01 AS payment_order_match
+    FROM payments p
+    JOIN orders o ON p.order_id = o.order_id
+) AS p_join_o
 
+UNION ALL
 
 -- 5.3 Check for completed payments with NULL processed_at timestamp
 -- Portfolio note: Business rule validation
--- TODO: Query payments where pay_status = 'completed' AND processed_at IS NULL
+SELECT
+    'NO NEGATIVE PRICE' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM payments
+WHERE pay_status = 'completed' AND processed_at IS NULL
 
+UNION ALL
 
 -- 5.4 Check for orders without payments
 -- Portfolio note: Valid for processing/pending orders, investigate for delivered orders
 -- TODO: LEFT JOIN orders with payments to find orders with NULL payment_id
+SELECT
+    'NO NEGATIVE PRICE' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM orders
+LEFT JOIN payments ON orders.order_id = payments.order_id
+WHERE payments.payment_id IS NULL
 
+UNION ALL
 
 -- 5.5 Check for failed payments with processed_at timestamp
 -- Expected result: 0 rows (failed payments shouldn't be processed)
 -- TODO: Query payments where pay_status = 'failed' AND processed_at IS NOT NULL
-
+SELECT
+    'NO NEGATIVE PRICE' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM payments
+WHERE pay_status = 'failed' AND processed_at IS NOT NULL;
 
 -- =====================================================
 -- 6. CALCULATED FIELD ACCURACY
 -- =====================================================
 -- Verify computed/stored generated columns
+CREATE OR REPLACE VIEW calculated_field_checks_v AS
 
 -- 6.1 Verify order_items total_price = unit_price * quantity
--- Expected result: 0 rows
--- TODO: Query order_items where ABS(total_price - (unit_price * quantity)) > 0.01
+SELECT
+    'ORDER ITEM TOTAL CALCULATION' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM order_items
+WHERE ABS(total_price - (unit_price * quantity)) > 0.01
 
+UNION ALL
 
 -- 6.2 Verify orders total_amount calculation
 -- Formula: (subtotal + shipping_cost) * (1 + tax_perc/100)
--- Expected result: 0 rows (or tiny rounding differences)
--- TODO: Query orders comparing total_amount with calculated value
+SELECT
+    'ORDER TOTAL CALCULATION' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM orders
+WHERE ABS(total_amount - ((subtotal + shipping_cost) * (1 + tax_perc/100))) > 0.01
 
+UNION ALL
 
 -- 6.3 Verify order subtotal matches sum of order items
 -- Portfolio note: This checks if triggers are maintaining subtotals correctly
--- TODO: JOIN orders with SUM of order_items total_price, compare with order subtotal
+SELECT
+    'ORDER SUBTOTAL MATCHES ORDER ITEMS' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM (
+    SELECT orders.order_id
+    FROM orders
+    JOIN order_items ON orders.order_id = order_items.order_id
+    GROUP BY orders.order_id
+    HAVING ABS(SUM(order_items.total_price) - MAX(orders.subtotal)) > 0.01
+) AS mismatches;
 
+-- SELECT * FROM calculated_field_checks_v;
 
 -- =====================================================
 -- 7. STATUS CONSISTENCY CHECKS
 -- =====================================================
 -- Validate status fields are logically consistent
+CREATE OR REPLACE VIEW status_consistency_checks_v AS
 
--- 7.1 Check for inactive/discontinued products with active variants
--- Portfolio note: Business logic - inactive products should have inactive variants
--- TODO: JOIN products with product_variants where product is inactive/discontinued but variant is active
-
-
--- 7.2 Check for pending payments on delivered orders
+-- 7.1 Check for pending payments on delivered orders
 -- Portfolio note: Delivered orders should have completed payments
--- TODO: JOIN orders with payments where order status is 'delivered' but payment is 'pending'
+SELECT 'ALL DELIVERED ORDERED PAID' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM orders
+JOIN payments ON orders.order_id = payments.order_id
+WHERE orders.o_status = 'delivered' AND payments.pay_status != 'completed'
 
+UNION ALL
 
--- 7.3 Check for shipped/delivered orders with failed payments
+-- 7.2 Check for shipped/delivered orders with failed payments
 -- Portfolio note: Orders shouldn't be shipped if payment failed
 -- TODO: JOIN orders with payments where order is shipped/delivered but payment is 'failed'
+SELECT 'ALL DELIVERED ORDERED PAID',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END
+FROM orders
+JOIN payments ON orders.order_id = payments.order_id
+WHERE orders.o_status IN ('delivered', 'shipped') AND payments.pay_status != 'completed';
 
+-- SELECT * FROM status_consistency_checks_v;
 
 -- =====================================================
 -- 8. CATEGORY HIERARCHY VALIDATION
 -- =====================================================
 -- Validate category tree structure
+SET @category_hierarchy_depth = 0;
 
--- 8.1 Check for circular category references (category is its own parent)
--- Expected result: 0 rows
--- TODO: Query categories where category_id = parent_category_id
-
-
--- 8.2 Check for deep category nesting (more than 3 levels)
+-- 8.1 Check for deep category nesting (more than 3 levels)
 -- Portfolio note: This demonstrates recursive query understanding
 -- The database has max 3 levels, so this should return 0 rows
 -- TODO: Use recursive CTE to calculate depth level, find any categories with depth > 3
+WITH RECURSIVE category_hierarchy AS (
+    -- Base case: Top-level managers (no supervisor)
+    SELECT
+        category_id,
+        parent_category_id,
+        1 AS level
+    FROM categories
+    WHERE parent_category_id IS NULL
 
+    UNION ALL
+
+    -- Recursive case: Employees with supervisors
+    SELECT
+        c.category_id,
+        c.parent_category_id,
+        ch.level + 1
+    FROM categories c
+    JOIN category_hierarchy ch ON c.parent_category_id = ch.category_id
+    WHERE ch.level < 10  -- Prevent infinite recursion
+)
+SELECT MAX(level) INTO @category_hierarchy_depth FROM category_hierarchy;
+
+SELECT
+    '3-Tiered MAX CATEGORY HIERARCHY' AS 'CHECK',
+    CASE @category_hierarchy_depth
+        WHEN 3 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT';
+
+CREATE OR REPLACE VIEW category_hierarchy_validation_v AS
+
+-- 8.2 Check for circular category references (category is its own parent)
+-- Expected result: 0 rows
+SELECT 'CIRCULAR CATEGORY REFERENCE' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS RESULT
+FROM categories
+WHERE category_id = parent_category_id
+
+UNION ALL
 
 -- 8.3 Check for duplicate category names within same parent
 -- Expected result: 0 rows (UNIQUE constraint should prevent this)
 -- TODO: GROUP BY parent_category_id, category_name with HAVING COUNT(*) > 1
+SELECT
+    'DUPLICATE NAMES PER CATEGORY PARENT',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END
+FROM (
+    SELECT parent_category_id, category_name
+    FROM categories
+    GROUP BY parent_category_id, category_name
+    HAVING COUNT(*) > 1
+) AS duplicate_categories_per_parent;
 
+-- SELECT * FROM category_hierarchy_validation_v;
 
 -- =====================================================
 -- 9. ADDRESS VALIDATION
 -- =====================================================
 -- Validate address data consistency
+CREATE OR REPLACE VIEW address_validation_v AS
 
 -- 9.1 Check for users with multiple default shipping addresses
 -- Portfolio note: Each user should have at most one default shipping address
--- TODO: Query addresses where type='shipping' AND is_default=TRUE, GROUP BY user_id, HAVING COUNT(*) > 1
+SELECT 'SINGLE DEFAULT SHIPPING ADDRESSES' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM (
+    SELECT COUNT(*)
+    FROM addresses
+    WHERE type = 'shipping' AND is_default = TRUE
+    GROUP BY user_id
+    HAVING COUNT(*) > 1
+) AS grouped_addresses
 
+UNION ALL
 
 -- 9.2 Check for orders using addresses that don't belong to the ordering user
 -- Expected result: 0 rows
 -- TODO: JOIN orders with addresses where order.user_id != address.user_id
+SELECT 'ORDER ADDRESSES MATCH USER' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM orders
+JOIN addresses ON orders.address_id = addresses.address_id
+WHERE orders.user_id != addresses.user_id;
 
-
--- 9.3 Check for users without any addresses
--- Portfolio note: May be valid for admin users or newly registered accounts
--- TODO: LEFT JOIN users with addresses, GROUP BY user, HAVING COUNT(addresses) = 0
-
+-- SELECT * FROM address_validation_v;
 
 -- =====================================================
 -- 10. TIMESTAMP CONSISTENCY CHECKS
@@ -262,28 +493,21 @@
 
 -- 10.1 Check for records where updated_at is before created_at
 -- Expected result: 0 rows
--- TODO: Use UNION ALL to query users, products, categories, product_variants where updated_at < created_at
-
-
--- 10.2 Check for payments created after order was placed
--- Portfolio note: Small delays are normal, but large gaps indicate issues
--- TODO: JOIN payments with orders, check where payment.created_at < order.order_date or DATEDIFF > 7 days
-
-
--- =====================================================
--- 11. INVENTORY AND STOCK VALIDATION
--- =====================================================
--- Check for potential inventory issues
-
--- 11.1 Identify low stock items (less than 10 units)
--- Portfolio note: Not a validation error, but useful for business monitoring
--- TODO: JOIN product_variants with products and vendors where stock_quantity < 10 AND status is active
-
-
--- 11.2 Check for out-of-stock items with active status
--- Portfolio note: Active items with 0 stock may need status update
--- TODO: JOIN product_variants with products where stock_quantity = 0 AND pv_status = 'active'
-
+SELECT 'UPDATED AFTER CREATED' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM (
+    SELECT u.created_at, u.updated_at FROM users u
+    UNION ALL
+    SELECT p.created_at, p.updated_at FROM products p
+    UNION ALL
+    SELECT c.created_at, c.updated_at FROM categories c
+    UNION ALL
+    SELECT pv.created_at, pv.updated_at FROM product_variants pv
+) AS combined_dated_tables
+WHERE updated_at < created_at;
 
 -- =====================================================
 -- VALIDATION SUMMARY REPORT
@@ -291,3 +515,60 @@
 -- Portfolio note: This provides a quick overview of all validations
 -- In production, this would be automated and logged
 -- TODO: Create a summary query showing validation completion status and timestamp
+
+SELECT 'INTEGRITY CHECKS' AS 'CHECK', '----------------------' AS 'RESULT'
+UNION ALL
+SELECT * FROM integrity_checks
+UNION ALL
+SELECT 'CALCULATED FIELD CHECKS' AS 'CHECK', '---------------------' AS 'RESULT'
+UNION ALL
+SELECT * FROM calculated_field_checks_v
+UNION ALL
+SELECT 'STATUS CONSISTENCY CHECKS' AS 'CHECK', '---------------------' AS 'RESULT'
+UNION ALL
+SELECT * FROM status_consistency_checks_v
+UNION ALL
+SELECT 'CATEGORY HIERARCHY VALIDATION' AS 'CHECK', '---------------------' AS 'RESULT'
+UNION ALL
+SELECT
+    '3-TIERED MAX CATEGORY HIERARCHY' AS 'CHECK',
+    CASE @category_hierarchy_depth
+        WHEN 3 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+UNION ALL
+SELECT * FROM category_hierarchy_validation_v
+UNION ALL
+SELECT 'ADDRESS VALIDATION' AS 'CHECK', '---------------------' AS 'RESULT'
+UNION ALL
+SELECT * FROM address_validation_v
+UNION ALL
+SELECT 'BUSINESS RULE CHECKS' AS 'CHECK', '---------------------' AS 'RESULT'
+UNION ALL
+SELECT * FROM business_rule_checks
+UNION ALL
+SELECT 'DATA QUALITY CHECKS' AS 'CHECK', '---------------------' AS 'RESULT'
+UNION ALL
+SELECT * FROM data_quality_checks
+UNION ALL
+SELECT 'PAYMENT CHECKS' AS 'CHECK', '---------------------' AS 'RESULT'
+UNION ALL
+SELECT * FROM payment_checks
+UNION ALL
+SELECT 'TIMESTAMP CONSISTENCY CHECKS' AS 'CHECK', '---------------------' AS 'RESULT'
+UNION ALL
+SELECT 'UPDATED AFTER CREATED' AS 'CHECK',
+    CASE COUNT(*)
+        WHEN 0 THEN 'PASS'
+        ELSE 'FAIL'
+    END AS 'RESULT'
+FROM (
+    SELECT u.created_at, u.updated_at FROM users u
+    UNION ALL
+    SELECT p.created_at, p.updated_at FROM products p
+    UNION ALL
+    SELECT c.created_at, c.updated_at FROM categories c
+    UNION ALL
+    SELECT pv.created_at, pv.updated_at FROM product_variants pv
+) AS combined_dated_tables
+WHERE updated_at < created_at;
