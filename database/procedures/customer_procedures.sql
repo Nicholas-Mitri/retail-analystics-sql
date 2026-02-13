@@ -1,8 +1,23 @@
+-- =========================================================
+-- Production Customer Procedures
+-- =========================================================
+
+-- Drops
 DROP PROCEDURE IF EXISTS sp_register_customer;
 DROP PROCEDURE IF EXISTS sp_get_customer_profile;
 DROP PROCEDURE IF EXISTS sp_update_customer_preferences;
 
 DELIMITER //
+
+-- =========================================================
+-- sp_register_customer
+-- Registers a new customer in the users table and associates their address.
+-- Inputs:
+--   p_email, p_password, p_first_name, p_last_name, p_phone
+--   p_address_line, p_type, p_city, p_state, p_postal_code, p_country, is_default
+-- Output:
+--   None. Inserts new user and address.
+-- =========================================================
 CREATE PROCEDURE sp_register_customer(
     IN p_email VARCHAR(255),
     IN p_password VARCHAR(255),
@@ -20,9 +35,10 @@ CREATE PROCEDURE sp_register_customer(
 BEGIN
     DECLARE v_user_id INT;
 
-    -- Insert into users table (customer registration)
-    INSERT INTO users (email, user_password, first_name, last_name, phone, customer_type, created_at)
-    VALUES (
+    -- Insert new customer into users table
+    INSERT INTO users (
+        email, user_password, first_name, last_name, phone, customer_type, created_at
+    ) VALUES (
         p_email,
         p_password,
         p_first_name,
@@ -31,24 +47,37 @@ BEGIN
         'customer',
         NOW()
     );
+
     SET v_user_id = LAST_INSERT_ID();
 
-    -- Insert into customer_addresses (associate address with the customer)
-    INSERT INTO addresses (user_id, address_line, type, city, state, postal_code, country)
-    VALUES (
+    -- Insert associated address for the customer (production: field name street_address)
+    INSERT INTO addresses (
+        user_id, street_address, type, city, state, postal_code, country, is_default
+    ) VALUES (
         v_user_id,
-        p_address_line1,
+        p_address_line,
         p_type,
         p_city,
         p_state,
         p_postal_code,
-        p_country
+        p_country,
+        is_default
     );
+
 END //
 
-CREATE PROCEDURE sp_get_customer_profile(IN p_user_id INT)
+-- =========================================================
+-- sp_get_customer_profile
+-- Retrieves the customer profile, including user info and associated addresses.
+-- Input:
+--   p_user_id - customer's user_id
+-- Output:
+--   Full customer profile (user and address info)
+-- =========================================================
+CREATE PROCEDURE sp_get_customer_profile(
+    IN p_user_id INT
+)
 BEGIN
-    -- Return full customer profile: user + all addresses + preferences (if any)
     SELECT
         u.user_id,
         u.email,
@@ -71,14 +100,25 @@ BEGIN
       AND u.customer_type = 'customer';
 END //
 
+-- =========================================================
+-- sp_update_customer_preferences
+-- Updates profile info for an existing customer.
+-- Inputs are optional (NULL will keep column unchanged).
+-- Input:
+--   p_user_id, p_email, p_password, p_first_name, p_last_name, p_phone
+-- Output:
+--   None (update in-place)
+-- =========================================================
 CREATE PROCEDURE sp_update_customer_preferences(
     IN p_user_id INT,
     IN p_email VARCHAR(255),
     IN p_password VARCHAR(255),
     IN p_first_name VARCHAR(50),
     IN p_last_name VARCHAR(50),
-    IN p_phone VARCHAR(20))
+    IN p_phone VARCHAR(20)
+)
 BEGIN
+    -- Only update fields provided (non-NULL)
     UPDATE users
     SET
         email = COALESCE(p_email, email),
@@ -88,5 +128,5 @@ BEGIN
         phone = COALESCE(p_phone, phone)
     WHERE user_id = p_user_id;
 END //
-DELIMITER ;
 
+DELIMITER ;
