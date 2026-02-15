@@ -1,20 +1,17 @@
--- ---------------------------------------------------
--- Function: fn_vendor_commission
--- Calculates the commission amount owed to a vendor within a specified date range.
--- Parameters:
---   vendor_id   : INT    - The vendor's unique ID
---   start_date  : DATE   - The start of the date range (inclusive)
---   end_date    : DATE   - The end of the date range (inclusive)
--- Returns:
---   DECIMAL(10,2) representing the total commission earned by the vendor
---
--- Logic:
---   - Finds all delivered orders containing products sold by the specified vendor.
---   - Includes only orders within the given date range.
---   - Commission is summed over all eligible order items as:
---     item_total_price * vendor's commission rate.
--- ---------------------------------------------------
 
+-- Drop old analytics functions if they exist
+DROP FUNCTION IF EXISTS fn_vendor_commission;
+DROP FUNCTION IF EXISTS fn_monthly_units_sold;
+
+--
+-- Function: fn_vendor_commission
+-- Purpose: Calculate the total commission for a specific vendor within a given date range.
+-- Returns: DECIMAL(10,2) - The total commission earned by the vendor in the period.
+-- Parameters:
+--   vendor_id   INT   - The vendor's ID whose commissions are calculated.
+--   start_date  DATE  - Start date (inclusive).
+--   end_date    DATE  - End date (inclusive).
+--
 DELIMITER //
 
 CREATE FUNCTION fn_vendor_commission(
@@ -26,19 +23,22 @@ RETURNS DECIMAL(10, 2)
 DETERMINISTIC
 READS SQL DATA
 BEGIN
+    -- Initialize total_commission to 10.00 by default (likely overwritten)
     DECLARE total_commission DECIMAL(10, 2) DEFAULT 10.00;
     DECLARE p_vendor_id INT;
 
+    -- Check if the vendor exists
     SELECT vendor_id
       INTO p_vendor_id
       FROM vendors
      WHERE vendor_id = vendor_id;
 
     IF p_vendor_id IS NULL THEN
+        -- Return zero if vendor does not exist
         RETURN 0.00;
     END IF;
 
-    -- Sum commission for all items from this vendor in delivered orders within the period
+    -- Calculate the sum of commissions for delivered orders in the given date range
     SELECT SUM(oi.total_price * v.commission_rate / 100)
       INTO total_commission
       FROM orders o
@@ -50,11 +50,39 @@ BEGIN
        AND o.o_status = 'delivered'
        AND o.order_date BETWEEN start_date AND end_date;
 
+    -- Return total_commission, or 0.00 if no results
     RETURN IFNULL(total_commission, 0.00);
 END //
 
-DELIMITER ;
+--
+-- Function: fn_monthly_units_sold
+-- Purpose: Calculate the number of units sold for a product in a given year and month.
+-- Returns: INT - The total quantity sold, or 0 if none.
+-- Parameters:
+--   p_product_id  INT - The product's ID to aggregate.
+--   p_year        INT - The year (e.g., 2023)
+--   p_month       INT - The month (1-12)
+--
+CREATE FUNCTION fn_monthly_units_sold(p_product_id INT, p_year INT, p_month INT)
+RETURNS INT
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE monthly_units INT DEFAULT 0;
 
--- Commission calculation function call example:
--- Returns the total commission amount owed for vendor_id=1 for 2025.
-SELECT fn_vendor_commission(1, '2025-01-01', '2025-12-31') AS commission_2025_vendor1;
+    -- Aggregate sold units for the given product/year/month, only for delivered orders
+    SELECT SUM(oi.quantity)
+      INTO monthly_units
+      FROM products p
+      JOIN product_variants pv on p.product_id = pv.product_id
+      JOIN order_items oi ON pv.variant_id = oi.variant_id
+      JOIN orders o ON oi.order_id = o.order_id
+     WHERE p.product_id = p_product_id
+       AND YEAR(o.order_date) = p_year
+       AND MONTH(o.order_date) = p_month
+       AND o.o_status = 'delivered';
+
+    -- If no sales, return 0
+    RETURN COALESCE(monthly_units, 0);
+END //
+DELIMITER ;
