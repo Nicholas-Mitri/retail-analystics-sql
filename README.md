@@ -216,29 +216,41 @@ ORDER BY c.category_name, total_revenue DESC;
 
 ---
 
-### 3. Month-over-Month Sales Growth Analysis
+### 3. 3-month Rolling Sales
 
-**Business Value:** Tracks sales momentum and identifies growth trends for forecasting and performance evaluation.
+**Business Value:** 3-month rolling analysis for dead/slow-moving stock for a specific product
 
 ```sql
+WITH RECURSIVE months AS (
+    SELECT 2025 AS yr, 1 AS mo
+    UNION ALL
+    SELECT
+        IF(mo = 12, yr + 1, yr),
+        IF(mo = 12, 1, mo + 1)
+    FROM months
+    WHERE yr < 2026 OR mo < 12
+),
+monthly_units_sold AS (
+    SELECT
+        yr,
+        mo,
+        fn_monthly_units_sold(10, yr, mo) AS `monthly units`
+    FROM months
+),
+rolling AS (
+    SELECT
+        mus.*,
+        SUM(mus.`monthly units`) OVER (ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS rolling_sum
+    FROM monthly_units_sold mus
+)
 SELECT
-    YEAR(o.order_date) AS year,
-    MONTH(o.order_date) AS month,
-    SUM(oi.total_price) AS monthly_sales,
-    LAG(SUM(oi.total_price)) OVER (ORDER BY YEAR(o.order_date), MONTH(o.order_date)) AS previous_month_sales,
-    SUM(oi.total_price) - LAG(SUM(oi.total_price)) OVER (ORDER BY YEAR(o.order_date), MONTH(o.order_date)) AS sales_change,
-    ROUND(
-        ((SUM(oi.total_price) - LAG(SUM(oi.total_price)) OVER (ORDER BY YEAR(o.order_date), MONTH(o.order_date)))
-        / LAG(SUM(oi.total_price)) OVER (ORDER BY YEAR(o.order_date), MONTH(o.order_date))) * 100,
-        2
-    ) AS percent_change
-FROM
-    orders o
-    JOIN order_items oi ON o.order_id = oi.order_id
-WHERE
-    o.o_status = 'delivered'
-GROUP BY YEAR(o.order_date), MONTH(o.order_date)
-ORDER BY year, month;
+    *,
+    CASE
+        WHEN rolling_sum = 0 THEN 'DEAD STOCK'
+        WHEN rolling_sum < 2 THEN 'SLOW MOVING'
+        ELSE 'NORMAL'
+    END AS activity
+FROM rolling;
 ```
 
 **Techniques Used:** Window Functions (LAG), Time-series analysis, Percentage calculations
