@@ -23,4 +23,5 @@ mysql -u "$DB_USER" -p"$MYSQL_PASSWORD" "$DB_NAME" < database/procedures/custome
 mysql -u "$DB_USER" -p"$MYSQL_PASSWORD" "$DB_NAME" < database/procedures/inventory_procedures.sql
 mysql -u "$DB_USER" -p"$MYSQL_PASSWORD" "$DB_NAME" < database/functions/analytics_functions.sql
 mysql -u "$DB_USER" -p"$MYSQL_PASSWORD" "$DB_NAME" < database/views/business_views.sql
+
 echo "Database setup complete!"
