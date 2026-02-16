@@ -39,7 +39,9 @@ This project demonstrates database design and advanced SQL analytics for a retai
 - **Cascading Logic:** Automated status updates across related tables
 - **Audit Trails:** Timestamp tracking on all major entities
 
-## Database Schema Highlights
+## Database Schema
+
+### Core Tables
 
 | Table                | Purpose                               | Key Relationships                               |
 | -------------------- | ------------------------------------- | ----------------------------------------------- |
@@ -60,6 +62,10 @@ This project demonstrates database design and advanced SQL analytics for a retai
 - Products → Variants (1:N)
 - Categories → Categories (1:N, self-referential)
 - Vendors → Products (1:N)
+
+### ERD Diagram
+
+![ERD Diagram](database/schema/ERD.png)
 
 ## Setup Instructions
 
