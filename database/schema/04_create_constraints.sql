@@ -4,11 +4,6 @@
 -- This file contains additional constraints beyond those defined
 -- in the table creation file. Many constraints (CHECK, UNIQUE, NOT NULL,
 -- FOREIGN KEY) are already defined inline with table definitions.
---
--- Portfolio Project Note: This demonstrates understanding of data
--- integrity rules appropriate for a retail analytics system. A
--- production system would include additional constraints, more
--- sophisticated validation, and possibly application-level checks.
 -- =====================================================
 
 
