@@ -1,4 +1,13 @@
 -- =====================================================
+-- TRIGGER CREATION SCRIPT
+-- Filename: 05_create_triggers.sql
+-- Purpose:  Defines triggers for the retail_analytics database
+--           to enforce data integrity, automate business rules,
+--           and maintain consistency with calculated fields.
+--           Run after tables and constraints are created.
+-- =====================================================
+
+-- =====================================================
 -- Drop existing triggers if they exist
 -- =====================================================
 
