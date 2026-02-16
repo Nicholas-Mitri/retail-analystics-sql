@@ -1,4 +1,12 @@
 -- =====================================================
+-- INDEX CREATION SCRIPT
+-- This file contains CREATE INDEX statements for optimizing
+-- query performance across major lookup and join columns
+-- in the retail_analytics database schema.
+-- Drop statements for indexes are included below for re-deployments.
+-- =====================================================
+
+-- =====================================================
 -- DROP TABLE INDEXES
 -- =====================================================
 
