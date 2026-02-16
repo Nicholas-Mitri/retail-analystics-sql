@@ -1,4 +1,13 @@
 -- =====================================================
+-- TRIGGER CREATION SCRIPT (AFTER DATA INSERT)
+-- Filename: 06_create_triggers_after_data_insert.sql
+-- Purpose:  Defines AFTER INSERT triggers for the retail_analytics database
+--           to automate post-insert business logic, enforce downstream
+--           consistency, and synchronize computed or summary fields.
+--           Run after all tables, constraints, and BEFORE triggers are created.
+-- =====================================================
+
+-- =====================================================
 -- Triggers for orders table
 -- =====================================================
 
