@@ -1,3 +1,9 @@
+-- =====================================================
+-- TABLE CREATION SCRIPT
+-- Filename: 02_create_tables.sql
+-- Purpose:  Defines all tables in the retail_analytics database,
+--           including relationships, constraints, and datatypes.
+-- =====================================================
 
 -- =====================================================
 -- Drop existing tables (in reverse dependency order)
