@@ -9,7 +9,7 @@
 -- =====================================================
 -- DROP TABLE INDEXES
 -- =====================================================
-
+/*
 DROP INDEX idx_users_customer_type ON users;
 DROP INDEX idx_vendors_status ON vendors;
 DROP INDEX idx_categories_parent ON categories;
@@ -37,7 +37,7 @@ DROP INDEX idx_payments_method ON payments;
 DROP INDEX idx_rfm_chain ON orders;
 DROP INDEX idx_product_sales ON order_items;
 DROP INDEX idx_vendor_commission ON orders;
-
+*/
 -- =====================================================
 -- USERS TABLE INDEXES
 -- =====================================================
