@@ -2,33 +2,33 @@
 -- DROP TABLE INDEXES
 -- =====================================================
 
--- DROP INDEX idx_users_customer_type ON users;
--- DROP INDEX idx_vendors_status ON vendors;
--- DROP INDEX idx_categories_parent ON categories;
--- DROP INDEX idx_products_vendor ON products;
--- DROP INDEX idx_products_category ON products;
--- DROP INDEX idx_products_status ON products;
--- DROP INDEX idx_products_vendor_category ON products;
--- DROP INDEX idx_variants_product ON product_variants;
--- DROP INDEX idx_variants_stock ON product_variants;
--- DROP INDEX idx_variants_product_status ON product_variants;
--- DROP INDEX idx_addresses_user ON addresses;
--- DROP INDEX idx_addresses_user_default ON addresses;
--- DROP INDEX idx_addresses_user_type ON addresses;
--- DROP INDEX idx_orders_user_date ON orders;
--- DROP INDEX idx_orders_status ON orders;
--- DROP INDEX idx_orders_date ON orders;
--- DROP INDEX idx_orders_status_date ON orders;
--- DROP INDEX idx_orders_address ON orders;
--- DROP INDEX idx_order_items_order ON order_items;
--- DROP INDEX idx_order_items_variant ON order_items;
--- DROP INDEX idx_order_items_variant_order ON order_items;
--- DROP INDEX idx_payments_status ON payments;
--- DROP INDEX idx_payments_status_processed ON payments;
--- DROP INDEX idx_payments_method ON payments;
--- DROP INDEX idx_rfm_chain ON orders;
--- DROP INDEX idx_product_sales ON order_items;
--- DROP INDEX idx_vendor_commission ON orders;
+DROP INDEX idx_users_customer_type ON users;
+DROP INDEX idx_vendors_status ON vendors;
+DROP INDEX idx_categories_parent ON categories;
+DROP INDEX idx_products_vendor ON products;
+DROP INDEX idx_products_category ON products;
+DROP INDEX idx_products_status ON products;
+DROP INDEX idx_products_vendor_category ON products;
+DROP INDEX idx_variants_product ON product_variants;
+DROP INDEX idx_variants_stock ON product_variants;
+DROP INDEX idx_variants_product_status ON product_variants;
+DROP INDEX idx_addresses_user ON addresses;
+DROP INDEX idx_addresses_user_default ON addresses;
+DROP INDEX idx_addresses_user_type ON addresses;
+DROP INDEX idx_orders_user_date ON orders;
+DROP INDEX idx_orders_status ON orders;
+DROP INDEX idx_orders_date ON orders;
+DROP INDEX idx_orders_status_date ON orders;
+DROP INDEX idx_orders_address ON orders;
+DROP INDEX idx_order_items_order ON order_items;
+DROP INDEX idx_order_items_variant ON order_items;
+DROP INDEX idx_order_items_variant_order ON order_items;
+DROP INDEX idx_payments_status ON payments;
+DROP INDEX idx_payments_status_processed ON payments;
+DROP INDEX idx_payments_method ON payments;
+DROP INDEX idx_rfm_chain ON orders;
+DROP INDEX idx_product_sales ON order_items;
+DROP INDEX idx_vendor_commission ON orders;
 
 -- =====================================================
 -- USERS TABLE INDEXES
